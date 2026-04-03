@@ -1,0 +1,96 @@
+:root {
+    --primary-violet: #7c4dff; 
+    --primary-violet-dark: #651fff; 
+    --light-purple-bg: #f3e5f5; 
+}
+
+/* On cible très précisément l'ID pour gagner en priorité sur Bootstrap */
+#mainHeader.app-header {
+    background-color: #7c4dff !important; /* Ton joli violet */
+    color: #ffffff !important;           /* Force le texte en blanc */
+    border-radius: 15px;                 /* Arrondis comme sur ton image */
+    padding: 20px !important;
+}
+
+/* On force tous les textes à l'intérieur du header en blanc */
+#mainHeader h1, 
+#mainHeader span, 
+#mainHeader small,
+#mainHeader .fw-bold {
+    color: #ffffff !important;
+}
+
+/* La petite ligne de séparation blanche au milieu */
+.vr-separator {
+    width: 1px;
+    background-color: rgba(255, 255, 255, 0.5);
+    height: 40px;
+    margin: 0 auto;
+}
+
+.max-width-mobile {
+    max-width: 500px;
+    margin: auto;
+}
+
+.bg-purple {
+    background-color: var(--primary-violet) !important;
+}
+
+/* Bouton violet principal */
+.btn-purple {
+    background-color: var(--primary-violet);
+    color: white;
+    border: none;
+    transition: background-color 0.2s;
+}
+
+.btn-purple:hover {
+    background-color: var(--primary-violet-dark);
+    color: white;
+}
+
+.btn-purple:active {
+    transform: scale(0.98);
+}
+
+.text-purple {
+    color: var(--primary-violet) !important;
+}
+
+.btn-outline-purple {
+    color: var(--primary-violet);
+    border-color: var(--primary-violet);
+}
+
+.btn-outline-purple:hover {
+    background-color: var(--primary-violet);
+    color: white;
+}
+
+
+.jour-item {
+    background: white;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 10px;
+    border: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    border-left: 4px solid var(--primary-violet); 
+}
+
+.slot-matin { border-left: 4px solid #0d6efd; background-color: #e3f2fd; }
+.slot-soir { border-left: 4px solid #ff9800; background-color: #fff3e0; }
+
+.pointer {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.pointer:hover {
+    background-color: #f8f9fa;
+    border-color: #7c4dff;
+}
