@@ -12,7 +12,7 @@
 <body class="bg-light">
 
     <div class="container-fluid max-width-mobile p-3">
-        <header id="mainHeader" class="app-header shadow-sm mb-3 text-center">
+       <header id="mainHeader" class="app-header shadow-sm mb-3 text-center">
             <div class="d-flex align-items-center justify-content-center mb-2">
                 <span style="font-size: 1.5rem;" class="me-2">🚜</span>
                 <h1 class="h5 mb-0 fw-bold">Heures à la ferme</h1>
@@ -20,14 +20,14 @@
             <div class="row align-items-center">
                 <div class="col text-center">
                     <small class="d-block opacity-75">Mois</small>
-                    <span class="fw-bold fs-4"><span id="totalMois">0.00</span>h</span>
+                    <span class="fw-bold fs-4" id="totalMois">0h00</span>
                 </div>
                 <div class="col-auto p-0">
                     <div class="vr-separator"></div>
                 </div>
                 <div class="col text-center">
                     <small class="d-block opacity-75">Année</small>
-                    <span class="fw-bold fs-4"><span id="totalAnnee">0.00</span>h</span>
+                    <span class="fw-bold fs-4" id="totalAnnee">0h00</span>
                 </div>
             </div>
         </header>
@@ -63,11 +63,6 @@
                     </select>
                 </div>
             </div>
-        </div>
-
-        <div class="d-flex justify-content-between align-items-center mb-2 px-1">
-            <h6 class="mb-0 fw-bold">Historique</h6>
-            <button id="btnFiltrer" class="btn btn-outline-purple btn-sm">📅</button>
         </div>
         
         <div id="listeHeures">
