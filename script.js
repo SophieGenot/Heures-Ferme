@@ -126,11 +126,24 @@ document.getElementById('selectMois').addEventListener('change', rafraichirAffic
 // ---  EXPORT ---
 document.getElementById('btnExport').addEventListener('click', () => {
     if (db.length === 0) return alert("Rien à exporter !");
-    let csv = "sep=;\nDate;Matin;Soir;Heures (Décimal);Heures (Normal)\n"; 
-    db.forEach(j => {
-        const matin = `${j.matin.deb || ''}-${j.matin.fin || ''}`, soir = `${j.soir.deb || ''}-${j.soir.fin || ''}`;
-        csv += `${j.date};${matin};${soir};${j.total.toFixed(2).replace('.', ',')};${formaterHeures(j.total)}\n`;
+    let csv = "sep=;\nDate;Matin Début;Matin Fin;Soir Début;Soir Fin;Total (Décimal);Total (Heures)\n"; 
+    
+    const dbTriee = [...db].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    dbTriee.forEach(j => {
+        const dateFr = j.date.split('-').reverse().join('/');
+        const mDeb = j.matin.deb || '';
+        const mFin = j.matin.fin || '';
+        const sDeb = j.soir.deb || '';
+        const sFin = j.soir.fin || '';
+        
+        const totalDec = j.total.toFixed(2).replace('.', ',');
+        // Formatage humain
+        const totalHumain = formaterHeures(j.total);
+    
+        csv += `${dateFr};${mDeb};${mFin};${sDeb};${sFin};${totalDec};${totalHumain}\n`;
     });
+
     const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
