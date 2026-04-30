@@ -5,7 +5,6 @@ if ('serviceWorker' in navigator) {
 }
 
 let db = JSON.parse(localStorage.getItem('ferme_data')) || [];
-
 // convertit 4.25 en "4h15"
 const formaterHeures = (decimal) => {
     if (!decimal || decimal === 0) return "0h00";
@@ -13,13 +12,11 @@ const formaterHeures = (decimal) => {
     const m = Math.round((decimal - h) * 60);
     return `${h}h${m < 10 ? "0" + m : m}`;
 };
-
 // --- INITIALISATION ---
 document.addEventListener('DOMContentLoaded', () => {
     genererOptionsMois();
     rafraichirAffichage();
 });
-
 // --- LOGIQUE DE CALCUL ---
 function calculerDifference(debut, fin) {
     if (!debut || !fin) return 0;
@@ -123,31 +120,93 @@ function genererOptionsMois() {
 
 document.getElementById('selectMois').addEventListener('change', rafraichirAffichage);
 
-// ---  EXPORT ---
 document.getElementById('btnExport').addEventListener('click', () => {
     if (db.length === 0) return alert("Rien à exporter !");
-    let csv = "sep=;\nDate;Matin Début;Matin Fin;Soir Début;Soir Fin;Total (Décimal);Total (Heures)\n"; 
-    
+
+    const maintenant = new Date();
+    const nomMois = maintenant.toLocaleString('fr-FR', { month: 'long' });
+    const annee = maintenant.getFullYear();
+
+    // Tri des données par date
     const dbTriee = [...db].sort((a, b) => new Date(a.date) - new Date(b.date));
 
+    // Calcul des totaux
+    const mActuel = maintenant.toISOString().substring(0, 7);
+    const aActuelle = annee.toString();
+    let cumulMois = 0, cumulAnnee = 0;
+
+    // Construction des lignes du tableau
+    let rowsHtml = "";
     dbTriee.forEach(j => {
-        const dateFr = j.date.split('-').reverse().join('/');
-        const mDeb = j.matin.deb || '';
-        const mFin = j.matin.fin || '';
-        const sDeb = j.soir.deb || '';
-        const sFin = j.soir.fin || '';
-        
-        const totalDec = j.total.toFixed(2).replace('.', ',');
-        // Formatage humain
-        const totalHumain = formaterHeures(j.total);
-    
-        csv += `${dateFr};${mDeb};${mFin};${sDeb};${sFin};${totalDec};${totalHumain}\n`;
+        if (j.date.startsWith(mActuel)) cumulMois += j.total;
+        if (j.date.startsWith(aActuelle)) cumulAnnee += j.total;
+
+        rowsHtml += `
+            <tr>
+                <td>${j.date.split('-').reverse().join('/')}</td>
+                <td>${j.matin.deb || '--'}</td>
+                <td>${j.matin.fin || '--'}</td>
+                <td>${j.soir.deb || '--'}</td>
+                <td>${j.soir.fin || '--'}</td>
+                <td class="bold">${formaterHeures(j.total)}</td>
+            </tr>`;
     });
 
-    const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `heures_ferme_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.csv`;
-    a.click();
+    // Création du contenu HTML complet pour le PDF
+    const contenuHtml = `
+    <html>
+    <head>
+        <title>Export Heures - ${nomMois} ${annee}</title>
+        <style>
+            body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
+            h1 { color: #6f42c1; text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+            th { background-color: #6f42c1; color: white; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .bold { font-weight: bold; }
+            .totaux-section { margin-top: 30px; border-top: 2px solid #6f42c1; padding-top: 10px; }
+            .total-item { font-size: 1.2em; margin-bottom: 5px; }
+            .text-purple { color: #6f42c1; font-weight: bold; }
+            @media print {
+                #btnImprimer { display: none; }
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Récapitulatif des Heures - ${nomMois.toUpperCase()} ${annee}</h1>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Matin Début</th>
+                    <th>Matin Fin</th>
+                    <th>Soir Début</th>
+                    <th>Soir Fin</th>
+                    <th>Total Jour</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rowsHtml}
+            </tbody>
+        </table>
+
+        <div class="totaux-section">
+            <div class="total-item">Total du mois (<b>${nomMois}</b>) : <span class="text-purple">${formaterHeures(cumulMois)}</span></div>
+            <div class="total-item">Total cumulé de l'année (<b>${annee}</b>) : <span class="text-purple">${formaterHeures(cumulAnnee)}</span></div>
+        </div>
+
+        <div style="margin-top: 40px; text-align: center;">
+            <button id="btnImprimer" onclick="window.print()" style="padding: 10px 20px; background: #6f42c1; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                Enregistrer en PDF / Imprimer
+            </button>
+        </div>
+    </body>
+    </html>`;
+
+    // Ouverture dans un nouvel onglet
+    const win = window.open('', '_blank');
+    win.document.write(contenuHtml);
+    win.document.close();
 });
