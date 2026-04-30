@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chrono-ferme-v5';
+const CACHE_NAME = 'chrono-ferme-v6';
 const ASSETS = [
   './',
   './index.html',
