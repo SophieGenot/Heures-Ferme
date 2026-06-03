@@ -6,9 +6,9 @@
 
 /* On cible très précisément l'ID pour gagner en priorité sur Bootstrap */
 #mainHeader.app-header {
-    background-color: #7c4dff !important; /* Ton joli violet */
-    color: #ffffff !important;           /* Force le texte en blanc */
-    border-radius: 15px;                 /* Arrondis comme sur ton image */
+    background-color: #7c4dff !important; 
+    color: #ffffff !important;          
+    border-radius: 15px;                 
     padding: 20px !important;
 }
 

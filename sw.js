@@ -1,9 +1,10 @@
-const CACHE_NAME = 'chrono-ferme-v6';
+const CACHE_NAME = 'chrono-ferme-v7';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './script.js',
+  './export-template.js',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css'
 ];
 
