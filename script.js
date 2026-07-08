@@ -61,26 +61,48 @@ function rafraichirAffichage() {
     const totalMoisElt = document.getElementById('totalMois'), totalAnneeElt = document.getElementById('totalAnnee');
     const listeElt = document.getElementById('listeHeures'), filtre = document.getElementById('selectMois').value;
 
-    const mActuel = new Date().toISOString().substring(0, 7);
+    const mActuelReel = new Date().toISOString().substring(0, 7);
     const aActuelle = new Date().getFullYear().toString();
+
+    // 1. AJOUT : On détermine quel mois cibler pour le compteur du haut
+    let moisCiblePourCompteur;
+    if (filtre === "actuel") {
+        moisCiblePourCompteur = mActuelReel;
+    } else if (filtre === "tout") {
+        // Si "Tout l'historique" est sélectionné, on peut par défaut cibler le mois le plus récent
+        moisCiblePourCompteur = db.length > 0 ? db.reduce((max, j) => j.date > max ? j.date : max, db[0].date).substring(0, 7) : mActuelReel;
+    } else {
+        moisCiblePourCompteur = filtre; // Exemple : "2026-05" si elle a cliqué sur Mai
+    }
+
+    // On met à jour le label ou le titre du compteur du mois si besoin (optionnel)
+    // Ex: si tu as un label "Total du mois", tu peux le rendre dynamique.
 
     let cumulMois = 0, cumulAnnee = 0;
     listeElt.innerHTML = "";
     db.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     db.forEach(j => {
-        if (j.date.startsWith(mActuel)) cumulMois += j.total;
+        // Cumul annuel (reste basé sur l'année en cours ou l'année du mois sélectionné)
+        // Ici on garde l'année en cours, mais on peut s'adapter si besoin
         if (j.date.startsWith(aActuelle)) cumulAnnee += j.total;
 
-        // Filtrage affichage
-        if (filtre === "tout" || (filtre === "actuel" && j.date.startsWith(mActuel)) || j.date.startsWith(filtre)) {
+        // 2. MODIFICATION : Le cumul du mois se base maintenant sur le mois ciblé par le filtre !
+        if (j.date.startsWith(moisCiblePourCompteur)) cumulMois += j.total;
+
+        // Filtrage affichage (Le code reste le même que tout à l'heure avec l'initiale du jour)
+        if (filtre === "tout" || (filtre === "actuel" && j.date.startsWith(mActuelReel)) || j.date.startsWith(filtre)) {
+            const jourDate = new Date(j.date);
+            const initialeJour = jourDate.toLocaleDateString('fr-FR', { weekday: 'narrow' }).toUpperCase();
+
             const div = document.createElement('div');
             div.className = 'jour-item shadow-sm pointer';
             
-            // Historique
             div.innerHTML = `
                 <div class="d-flex flex-column">
-                    <span class="fw-bold text-dark">${j.date.split('-').reverse().join('/')}</span>
+                    <span class="fw-bold text-dark">
+                        <span class="text-purple me-1">[${initialeJour}]</span> ${j.date.split('-').reverse().join('/')}
+                    </span>
                     <small class="text-muted">M: ${j.matin.deb || '--'} > ${j.matin.fin || '--'}</small>
                     <small class="text-muted">S: ${j.soir.deb || '--'} > ${j.soir.fin || '--'}</small>
                 </div>
