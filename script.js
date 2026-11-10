@@ -5,18 +5,21 @@ if ('serviceWorker' in navigator) {
 }
 
 let db = JSON.parse(localStorage.getItem('ferme_data')) || [];
-// convertit 4.25 en "4h15"
+
+// Convertit 4.25 en "4h15"
 const formaterHeures = (decimal) => {
     if (!decimal || decimal === 0) return "0h00";
     const h = Math.floor(decimal);
     const m = Math.round((decimal - h) * 60);
     return `${h}h${m < 10 ? "0" + m : m}`;
 };
+
 // --- INITIALISATION ---
 document.addEventListener('DOMContentLoaded', () => {
     genererOptionsMois();
     rafraichirAffichage();
 });
+
 // --- LOGIQUE DE CALCUL ---
 function calculerDifference(debut, fin) {
     if (!debut || !fin) return 0;
@@ -44,7 +47,8 @@ document.getElementById('btnEnregistrer').addEventListener('click', () => {
         date: dateValeur,
         matin: { deb: mDebut, fin: mFin, dur: durMatin },
         soir: { deb: sDebut, fin: sFin, dur: durSoir },
-        total: total
+        total: total,
+        type: "travail" // Type par défaut
     };
 
     db = db.filter(j => j.date !== dateValeur);
@@ -64,61 +68,70 @@ function rafraichirAffichage() {
     const mActuelReel = new Date().toISOString().substring(0, 7);
     const aActuelle = new Date().getFullYear().toString();
 
-    // 1. AJOUT : On détermine quel mois cibler pour le compteur du haut
     let moisCiblePourCompteur;
     if (filtre === "actuel") {
         moisCiblePourCompteur = mActuelReel;
     } else if (filtre === "tout") {
-        // Si "Tout l'historique" est sélectionné, on peut par défaut cibler le mois le plus récent
         moisCiblePourCompteur = db.length > 0 ? db.reduce((max, j) => j.date > max ? j.date : max, db[0].date).substring(0, 7) : mActuelReel;
     } else {
-        moisCiblePourCompteur = filtre; // Exemple : "2026-05" si elle a cliqué sur Mai
+        moisCiblePourCompteur = filtre;
     }
-
-    // On met à jour le label ou le titre du compteur du mois si besoin (optionnel)
-    // Ex: si tu as un label "Total du mois", tu peux le rendre dynamique.
 
     let cumulMois = 0, cumulAnnee = 0;
     listeElt.innerHTML = "";
     db.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     db.forEach(j => {
-        // Cumul annuel (reste basé sur l'année en cours ou l'année du mois sélectionné)
-        // Ici on garde l'année en cours, mais on peut s'adapter si besoin
         if (j.date.startsWith(aActuelle)) cumulAnnee += j.total;
-
-        // 2. MODIFICATION : Le cumul du mois se base maintenant sur le mois ciblé par le filtre !
         if (j.date.startsWith(moisCiblePourCompteur)) cumulMois += j.total;
 
-        // Filtrage affichage (Le code reste le même que tout à l'heure avec l'initiale du jour)
         if (filtre === "tout" || (filtre === "actuel" && j.date.startsWith(mActuelReel)) || j.date.startsWith(filtre)) {
-            const jourDate = new Date(j.date);
-            const initialeJour = jourDate.toLocaleDateString('fr-FR', { weekday: 'narrow' }).toUpperCase();
-
             const div = document.createElement('div');
             div.className = 'jour-item shadow-sm pointer';
-            
-            div.innerHTML = `
-                <div class="d-flex flex-column">
-                    <span class="fw-bold text-dark">
-                        <span class="text-purple me-1">[${initialeJour}]</span> ${j.date.split('-').reverse().join('/')}
-                    </span>
-                    <small class="text-muted">M: ${j.matin.deb || '--'} > ${j.matin.fin || '--'}</small>
-                    <small class="text-muted">S: ${j.soir.deb || '--'} > ${j.soir.fin || '--'}</small>
-                </div>
-                <div class="text-end">
-                    <span class="fw-bold fs-5 d-block text-purple">${formaterHeures(j.total)}</span>
-                    <small class="text-primary" style="font-size: 0.7rem;">Modifier ✏️</small>
-                </div>`;
 
-            div.onclick = () => {
-                document.getElementById('dateSaisie').value = j.date;
-                document.getElementById('matinDebut').value = j.matin.deb;
-                document.getElementById('matinFin').value = j.matin.fin;
-                document.getElementById('soirDebut').value = j.soir.deb;
-                document.getElementById('soirFin').value = j.soir.fin;
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            };
+            // Gestion de l'affichage si c'est un Congé ou un Jour Férié
+            if (j.type === "CP" || j.type === "Ferie") {
+                const libelleType = j.type === "CP" ? "Congés Payés" : "Jour Férié";
+                const badgeColor = j.type === "CP" ? "text-warning" : "text-info";
+                
+                div.innerHTML = `
+                    <div class="d-flex flex-column">
+                        <span class="fw-bold text-dark">
+                            <span class="${badgeColor} me-1">[${j.type}]</span> ${j.date.split('-').reverse().join('/')}
+                        </span>
+                        <small class="text-muted">📅 ${libelleType}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="fw-bold fs-6 text-muted">-</span>
+                        <small class="text-danger d-block" style="font-size: 0.7rem;" onclick="event.stopPropagation(); supprimerJour('${j.date}')">Supprimer ❌</small>
+                    </div>`;
+            } else {
+                // Affichage classique jour de travail
+                const jourDate = new Date(j.date);
+                const initialeJour = jourDate.toLocaleDateString('fr-FR', { weekday: 'narrow' }).toUpperCase();
+                
+                div.innerHTML = `
+                    <div class="d-flex flex-column">
+                        <span class="fw-bold text-dark">
+                            <span class="text-purple me-1">[${initialeJour}]</span> ${j.date.split('-').reverse().join('/')}
+                        </span>
+                        <small class="text-muted">M: ${j.matin.deb || '--'} > ${j.matin.fin || '--'}</small>
+                        <small class="text-muted">S: ${j.soir.deb || '--'} > ${j.soir.fin || '--'}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="fw-bold fs-5 d-block text-purple">${formaterHeures(j.total)}</span>
+                        <small class="text-primary" style="font-size: 0.7rem;">Modifier ✏️</small>
+                    </div>`;
+
+                div.onclick = () => {
+                    document.getElementById('dateSaisie').value = j.date;
+                    document.getElementById('matinDebut').value = j.matin.deb;
+                    document.getElementById('matinFin').value = j.matin.fin;
+                    document.getElementById('soirDebut').value = j.soir.deb;
+                    document.getElementById('soirFin').value = j.soir.fin;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+            }
             listeElt.appendChild(div);
         }
     });
@@ -142,60 +155,124 @@ function genererOptionsMois() {
 
 document.getElementById('selectMois').addEventListener('change', rafraichirAffichage);
 
-// ---  EXPORT PDF CORRIGÉ ---
+// --- FONCTION SUPPRESSION JOUR ---
+function supprimerJour(dateStr) {
+    if (confirm(`Voulez-vous vraiment supprimer l'entrée du ${dateStr.split('-').reverse().join('/')} ?`)) {
+        db = db.filter(j => j.date !== dateStr);
+        localStorage.setItem('ferme_data', JSON.stringify(db));
+        genererOptionsMois();
+        rafraichirAffichage();
+    }
+}
+
+// --- AJOUT PERIODE CONGES / FERIES ---
+function ajouterPeriodeConges() {
+    const debStr = document.getElementById('congeDebut').value;
+    const finStr = document.getElementById('congeFin').value;
+    const type = document.getElementById('congeType').value;
+
+    if (!debStr || !finStr) {
+        alert("Veuillez sélectionner une date de début et de fin.");
+        return;
+    }
+
+    let dCourante = new Date(debStr);
+    const dFin = new Date(finStr);
+
+    if (dCourante > dFin) {
+        alert("La date de début doit être avant ou égale à la date de fin.");
+        return;
+    }
+
+    while (dCourante <= dFin) {
+        const dateIso = dCourante.toISOString().substring(0, 10);
+        let index = db.findIndex(j => j.date === dateIso);
+        
+        const nouvelleEntree = {
+            date: dateIso,
+            matin: { deb: "", fin: "", dur: 0 },
+            soir: { deb: "", fin: "", dur: 0 },
+            total: 0,
+            type: type // "CP" ou "Ferie"
+        };
+
+        if (index >= 0) {
+            db[index] = nouvelleEntree;
+        } else {
+            db.push(nouvelleEntree);
+        }
+
+        dCourante.setDate(dCourante.getDate() + 1);
+    }
+
+    localStorage.setItem('ferme_data', JSON.stringify(db));
+    genererOptionsMois();
+    rafraichirAffichage();
+    
+    document.getElementById('congeDebut').value = '';
+    document.getElementById('congeFin').value = '';
+    
+    alert("Période de congés/fériés ajoutée avec succès ! 🌴");
+}
+
+// --- EXPORT PDF ---
 document.getElementById('btnExport').addEventListener('click', () => {
     if (db.length === 0) return alert("Rien à exporter !");
 
-    // 1. CORRECTION : On s'aligne sur le mois sélectionné dans le filtre visuel
     const filtre = document.getElementById('selectMois').value;
     let mActuel;
 
     if (filtre === "actuel") {
         mActuel = new Date().toISOString().substring(0, 7);
     } else if (filtre === "tout") {
-        // Si l'utilisateur a choisi "Tout l'historique", on prend le mois le plus récent présent en base
         mActuel = db.reduce((max, j) => j.date > max ? j.date : max, db[0].date).substring(0, 7);
     } else {
-        mActuel = filtre; // Exemple : "2026-05"
+        mActuel = filtre;
     }
 
-    // Calcul des textes dynamiques pour le PDF en fonction de la cible choisie
     const dateReference = new Date(mActuel + "-01");
     const nomMois = dateReference.toLocaleString('fr-FR', { month: 'long' });
     const annee = dateReference.getFullYear();
     const aActuelle = annee.toString();
 
-    // 2. Tri chronologique
     const dbTriee = [...db].sort((a, b) => new Date(a.date) - new Date(b.date));
 
     let cumulMois = 0, cumulAnnee = 0;
     let rowsHtml = "";
 
     dbTriee.forEach(j => {
-        // On cumule l'année complète correspondante
         if (j.date.startsWith(aActuelle)) cumulAnnee += j.total;
 
-        // CORRECTION CRITIQUE : On ne génère la ligne HTML que si la saisie appartient au mois ciblé
         if (j.date.startsWith(mActuel)) {
             cumulMois += j.total;
 
-            rowsHtml += `
-                <tr>
-                    <td>${j.date.split('-').reverse().join('/')}</td>
-                    <td>${j.matin.deb || '--'}</td>
-                    <td>${j.matin.fin || '--'}</td>
-                    <td>${j.soir.deb || '--'}</td>
-                    <td>${j.soir.fin || '--'}</td>
-                    <td>${j.total.toFixed(2).replace('.', ',')}</td>
-                    <td class="bold">${formaterHeures(j.total)}</td>
-                </tr>`;
+            // Affichage spécifique dans le tableau PDF si c'est un CP ou Férié
+            if (j.type === "CP" || j.type === "Ferie") {
+                const libelle = j.type === "CP" ? "Congés Payés" : "Jour Férié";
+                rowsHtml += `
+                    <tr>
+                        <td>${j.date.split('-').reverse().join('/')}</td>
+                        <td colspan="4" class="text-center italic">${libelle}</td>
+                        <td>0,00</td>
+                        <td class="bold">0h00</td>
+                    </tr>`;
+            } else {
+                rowsHtml += `
+                    <tr>
+                        <td>${j.date.split('-').reverse().join('/')}</td>
+                        <td>${j.matin.deb || '--'}</td>
+                        <td>${j.matin.fin || '--'}</td>
+                        <td>${j.soir.deb || '--'}</td>
+                        <td>${j.soir.fin || '--'}</td>
+                        <td>${j.total.toFixed(2).replace('.', ',')}</td>
+                        <td class="bold">${formaterHeures(j.total)}</td>
+                    </tr>`;
+            }
         }
     });
 
-    // Sécurité si aucune donnée n'est trouvée pour le filtre sélectionné
     if (!rowsHtml) return alert("Aucune donnée à exporter pour ce mois-ci !");
 
-    // 3. Appel de la fonction template avec les bonnes données filtrées
     const renduFinal = genererTemplatePDF({
         rows: rowsHtml,
         mois: nomMois,
@@ -206,7 +283,6 @@ document.getElementById('btnExport').addEventListener('click', () => {
         totalAnneeHeures: formaterHeures(cumulAnnee)
     });
 
-    // 4. Ouverture de la fenêtre d'impression
     const win = window.open('', '_blank');
     if (win) {
         win.document.write(renduFinal);
